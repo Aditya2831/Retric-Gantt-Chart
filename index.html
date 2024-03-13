@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+      }
+      .chartMenu {
+        width: 100vw;
+        height: 40px;
+        background: #1A1A1A;
+        color: rgba(54, 162, 235, 1);
+      }
+      .chartMenu p {
+        padding: 10px;
+        font-size: 20px;
+      }
+      .chartCard {
+        width: 100vw;
+        height: calc(100vh - 40px);
+        background: rgba(54, 162, 235, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .chartBox {
+        width: 70%;
+        padding: 20px;
+        border-radius: 20px;
+        border: solid 3px rgba(54, 162, 235, 1);
+        background: white;
+      }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </head>
+  <body>
+    <div class="chartMenu">
+      <p>WWW.CHARTJS3.COM (Chart JS <span id="chartVersion"></span>)</p>
+    </div>
+    <div class="chartCard">
+      <div class="chartBox">
+        <canvas id="myChart"></canvas>
+        <input type="month" name="" id="" onchange="chartFilter(this)">
+      </div>
+    </div>
+    
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script>
+
+const colors=['rgb(162, 0, 0)','rgb(162, 97, 0)','rgb(0, 103, 0)']
+    // setup 
+    const data = {
+    //   labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    //0-delayed, 1-pending, 2-completed
+      datasets: [{
+        label: 'Weekly Sales',
+        data: [{
+            x: ['2024-03-02','2024-03-06'], y:'Task 1' ,name:'X' , status:0
+        },
+        {
+            x: ['2024-03-05','2024-03-09'], y:'Task 2'  ,name:'X', status:0
+        },
+        {
+            x: ['2024-03-11','2024-03-15'], y:'Task 3' ,name:'X', status:0
+        },
+        {
+            x: ['2024-03-17','2024-03-22'], y:'Task 4' ,name:'X' , status:1
+        },
+        {
+            x: ['2024-03-22','2024-03-28'], y:'Task 5' ,name:'X', status:2
+        }],
+        backgroundColor:(ctx)=>{
+            console.log(ctx);
+            return colors[ctx.raw.status]
+        },
+        borderColor: (ctx)=>{
+            console.log(ctx);
+            return colors[ctx.raw.status]
+        } ,
+        borderWidth: 1,
+        borderSkipped:false,
+        borderRadius: 10,
+        barPercentage: 0.5
+      }]
+    };
+
+    //today's line
+    const todayLine={
+        id:'todayLine',
+        afterDatasetsDraw(chart,args,pluginOptions){
+            const{ctx,data,chartArea:{top,bottom,left,right},scales:{x,y}}=chart;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.lineWidth=2;
+            ctx.moveTo(x.getPixelForValue(new Date()),top);
+            ctx.lineTo(x.getPixelForValue(new Date()),bottom);
+            ctx.setLineDash([6,6])
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+        }
+    }
+
+    //status plugin block
+    //0-delayed, 1-pending, 2-completed
+    const status={
+        id:'status',
+        afterDatasetsDraw(chart,args,pluginOptions){
+            const{ctx,data,options,chartArea:{top,bottom,left,right},scales:{x,y}}=chart;
+
+            const icons=['\uf00d', '\uf110', '\uf00c'];
+            const paddingRight=options.layout.padding.right;
+            const angle=Math.PI/180;
+            ctx.save();
+            ctx.font='bolder 12px FontAwesome';
+            ctx.textBaseLine='middle';
+           // ctx.textAlign='center'
+
+            data.datasets[0].data.forEach((datapoint,index)=>{
+                ctx.beginPath();
+                ctx.fillStyle=colors[datapoint.status]
+                ctx.arc(right+35,y.getPixelForValue(index)-4,11,0,angle*360,false)
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle='white';
+
+                ctx.fillText(icons[datapoint.status],right+30,y.getPixelForValue(index));
+
+            })
+
+            //status positioning
+            ctx.font='bolder 13px sans-serif';
+                ctx.fillStyle='black';
+                ctx.fillText('Status',right+paddingRight/6,top);
+            ctx.restore();
+        }
+    }
+
+
+
+    //assignedTasks plugin block
+    const assignedTasks={
+        id:'assignedTasks',
+        afterDatasetsDraw(chart,args,pluginOptions){
+            const{ctx,data,chartArea:{top,bottom,left,right},scales:{x,y}}=chart;
+
+            ctx.save();
+            ctx.font='bolder 12px';
+            ctx.fillStyle='black';
+            ctx.textBaseLine='middle';
+            //ctx.textAlign='left'
+
+            data.datasets[0].data.forEach((datapoint,index)=>{
+                ctx.fillText(datapoint.name,10,y.getPixelForValue(index));
+            });
+            //names positioning
+            ctx.fillText('Names',10,top)
+            ctx.restore();
+        }
+    }
+
+
+    // config 
+    const config = {
+      type: 'bar',
+      data,
+      options: {
+        layout:{
+            padding:{
+                left: 100,
+                right:100
+            }
+        },
+      indexAxis:'y',
+        scales: {
+            position:'top',
+          x: {
+            type:'time',
+            time:{
+                unit:'day'
+            },
+            min:'2024-03-01',
+            max:'2024-03-31',
+            beginAtZero: true
+          }
+        },
+        plugins:{
+            legend:{
+                display: false
+            }
+        }
+      },
+      plugins:[todayLine,assignedTasks,status]
+    };
+
+    // render init block
+    const myChart = new Chart(
+      document.getElementById('myChart'),
+      config
+    );
+
+    // Instantly assign Chart.js version
+    const chartVersion = document.getElementById('chartVersion');
+    chartVersion.innerText = Chart.version;
+    </script>
+
+  </body>
+</html>
